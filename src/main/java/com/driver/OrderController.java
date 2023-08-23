@@ -2,6 +2,9 @@ package com.driver;
 
 import java.util.List;
 
+import com.driver.Repository.PartnerRepository;
+import com.driver.Service.OrderService;
+import com.driver.Service.PartnerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,73 +23,114 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     @Autowired
-    private ServiceClass serviceClassObj;
+
+    private OrderService orderService;
 
     @Autowired
-    private RepositoryClass repositoryClassObj;
-
+    private PartnerService partnerService;
 
     @PostMapping("/add-order")
     public ResponseEntity<String> addOrder(@RequestBody Order order){
-        repositoryClassObj.addOrderInDb(order);
-        return new ResponseEntity<>("New order added successfully", HttpStatus.CREATED);
-    }
+        try{
+            orderService.addOrder(order);
+            return new ResponseEntity<>("New order added successfully", HttpStatus.CREATED);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
 
     @PostMapping("/add-partner/{partnerId}")
     public ResponseEntity<String> addPartner(@PathVariable String partnerId){
-        repositoryClassObj.addPartnerInDb(partnerId);
-        return new ResponseEntity<>("New delivery partner added successfully", HttpStatus.CREATED);
+        try{
+            partnerService.addPartner(partnerId);
+            return new ResponseEntity<>("New delivery partner added successfully", HttpStatus.CREATED);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PutMapping("/add-order-partner-pair")
     public ResponseEntity<String> addOrderPartnerPair(@RequestParam String orderId, @RequestParam String partnerId){
+            try{
+                orderService.makePair(orderId,partnerId);
+                //This is basically assigning that order to that partnerId
+                return new ResponseEntity<>("New order-partner pair added successfully", HttpStatus.CREATED);
+            }
+            catch (Exception e){
+                return new ResponseEntity<>(e.getMessage(),HttpStatus.BAD_REQUEST);
+            }
+        }
+
+    @GetMapping("/get-order-by-id/{orderId}")
+    public ResponseEntity<Order> getOrderById(@PathVariable String orderId){
+        try{
+            Order order= null;
+            order=orderService.getOrder(orderId);
+            //order should be returned with an orderId.
+            return new ResponseEntity<>(order, HttpStatus.CREATED);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(null,HttpStatus.BAD_REQUEST);
+        }
 
         repositoryClassObj.addOrderPartnerDb(orderId,partnerId);
         //This is basically assigning that order to that partnerId
         return new ResponseEntity<>("New order-partner pair added successfully", HttpStatus.CREATED);
     }
 
-    @GetMapping("/get-order-by-id/{orderId}")
-    public ResponseEntity<Order> getOrderById(@PathVariable String orderId){
-        Order order= repositoryClassObj.getOrderFromDb(orderId);
-        //order should be returned with an orderId.
-        return new ResponseEntity<>(order, HttpStatus.CREATED);
-    }
-
     @GetMapping("/get-partner-by-id/{partnerId}")
     public ResponseEntity<DeliveryPartner> getPartnerById(@PathVariable String partnerId){
-        DeliveryPartner deliveryPartner = repositoryClassObj.getPartnerFromDb(partnerId);
-        //deliveryPartner should contain the value given by partnerId
-        return new ResponseEntity<>(deliveryPartner, HttpStatus.CREATED);
+        try{
+            DeliveryPartner deliveryPartner = null;
+            deliveryPartner=partnerService.getPartner(partnerId);
+            //deliveryPartner should contain the value given by partnerId
+            return new ResponseEntity<>(deliveryPartner, HttpStatus.CREATED);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(null,HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/get-order-count-by-partner-id/{partnerId}")
     public ResponseEntity<Integer> getOrderCountByPartnerId(@PathVariable String partnerId){
-        Integer orderCount = serviceClassObj.getOrderCountByPartnerId(partnerId);
-        //orderCount should denote the orders given by a partner-id
-        return new ResponseEntity<>(orderCount, HttpStatus.CREATED);
+        try{
+            Integer orderCount = 0;
+            DeliveryPartner partner=partnerService.getPartner(partnerId);
+            orderCount=partner.getNumberOfOrders();
+            //orderCount should denote the orders given by a partner-id
+            return new ResponseEntity<>(orderCount, HttpStatus.CREATED);
+        }catch(Exception e){
+            return new ResponseEntity<>(0,HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/get-orders-by-partner-id/{partnerId}")
     public ResponseEntity<List<String>> getOrdersByPartnerId(@PathVariable String partnerId){
-        List<String> orders = serviceClassObj.getOrdersByPartnerId(partnerId);
-        //orders should contain a list of orders by PartnerId
-        return new ResponseEntity<>(orders, HttpStatus.CREATED);
+        try{
+            List<String> orders = null;
+            orders=partnerService.getOrdersByPartnerId(partnerId);
+            //orders should contain a list of orders by PartnerId
+            return new ResponseEntity<>(orders, HttpStatus.CREATED);
+        }
+        catch(Exception e){
+            return new ResponseEntity<>(null,HttpStatus.BAD_REQUEST);
+        }
     }
 
     @GetMapping("/get-all-orders")
     public ResponseEntity<List<String>> getAllOrders(){
+        List<String> orders = null;
+        orders=orderService.getAllOrder();
         List<String> orders = repositoryClassObj.getAllOrders();
-
-        //Get all orders
         return new ResponseEntity<>(orders, HttpStatus.CREATED);
     }
 
     @GetMapping("/get-count-of-unassigned-orders")
     public ResponseEntity<Integer> getCountOfUnassignedOrders(){
         Integer countOfOrders = 0;
+        orderService.getCountOfUnassignedOrders();
         countOfOrders= repositoryClassObj.unsignedOrder();
-
         //Count of orders that have not been assigned to any DeliveryPartner
 
         return new ResponseEntity<>(countOfOrders, HttpStatus.CREATED);
